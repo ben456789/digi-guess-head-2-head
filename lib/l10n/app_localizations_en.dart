@@ -339,8 +339,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get makeAGuess => 'Make a Guess!';
 
   @override
-  String confirmGuess(String pokemonName) {
-    return 'Are you sure you want to guess $pokemonName?';
+  String confirmGuess(String digimonName) {
+    return 'Are you sure you want to guess $digimonName?';
   }
 
   @override
@@ -433,7 +433,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get type => 'Type';
 
   @override
-  String guessQuestion(String pokemonName) {
-    return 'Is it $pokemonName?';
+  String guessQuestion(String digimonName) {
+    return 'Is it $digimonName?';
   }
 }

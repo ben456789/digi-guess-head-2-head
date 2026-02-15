@@ -237,11 +237,11 @@
   "@noAvailableCharacter": {"description": "No available character error"},
   "makeAGuess": "Make a Guess!",
   "@makeAGuess": {"description": "Make a guess title"},
-  "confirmGuess": "Are you sure you want to guess {pokemonName}?",
+  "confirmGuess": "Are you sure you want to guess {digimonName}?",
   "@confirmGuess": {
     "description": "Confirm guess message",
     "placeholders": {
-      "pokemonName": {
+      "digimonName": {
         "type": "String"
       }
     }
@@ -339,11 +339,11 @@
   "type": "Type",
   "@type": {"description": "Type label"},
 
-  "guessQuestion": "Is it {pokemonName}?",
+  "guessQuestion": "Is it {digimonName}?",
   "@guessQuestion": {
     "description": "Question format when making a guess",
     "placeholders": {
-      "pokemonName": {
+      "digimonName": {
         "type": "String"
       }
     }

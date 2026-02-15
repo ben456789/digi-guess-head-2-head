@@ -725,8 +725,8 @@ abstract class AppLocalizations {
   /// Confirm guess message
   ///
   /// In en, this message translates to:
-  /// **'Are you sure you want to guess {pokemonName}?'**
-  String confirmGuess(String pokemonName);
+  /// **'Are you sure you want to guess {digimonName}?'**
+  String confirmGuess(String digimonName);
 
   /// No messages empty state
   ///
@@ -887,8 +887,8 @@ abstract class AppLocalizations {
   /// Question format when making a guess
   ///
   /// In en, this message translates to:
-  /// **'Is it {pokemonName}?'**
-  String guessQuestion(String pokemonName);
+  /// **'Is it {digimonName}?'**
+  String guessQuestion(String digimonName);
 }
 
 class _AppLocalizationsDelegate

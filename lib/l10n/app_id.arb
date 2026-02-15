@@ -127,11 +127,11 @@
   },
   "noAvailableCharacter": "Tidak ada karakter tersedia untuk ditebak",
   "makeAGuess": "Buat Tebakan!",
-  "confirmGuess": "Apakah Anda yakin ingin menebak {pokemonName}?",
+  "confirmGuess": "Apakah Anda yakin ingin menebak {digimonName}?",
   "@confirmGuess": {
-    "description": "Confirm guess message with Pokemon name",
+    "description": "Confirm guess message with digimon name",
     "placeholders": {
-      "pokemonName": {
+      "digimonName": {
         "type": "String"
       }
     }
@@ -201,11 +201,11 @@
   "type": "Tipe",
   "@type": {"description": "Type label"},
   
-  "guessQuestion": "Apakah itu {pokemonName}?",
+  "guessQuestion": "Apakah itu {digimonName}?",
   "@guessQuestion": {
     "description": "Question format when making a guess",
     "placeholders": {
-      "pokemonName": {
+      "digimonName": {
         "type": "String"
       }
     }

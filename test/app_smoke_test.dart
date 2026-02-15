@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:poke_guess_head_2_head/main.dart';
+import 'package:digi_guess_head_2_head/main.dart';
 
 void main() {
   testWidgets('App loads and shows welcome screen', (

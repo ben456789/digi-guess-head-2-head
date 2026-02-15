@@ -1,10 +1,10 @@
 # Project-level configuration.
 cmake_minimum_required(VERSION 3.14)
-project(poke_guess_head_2_head LANGUAGES CXX)
+project(digi_guess_head_2_head LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
-set(BINARY_NAME "poke_guess_head_2_head")
+set(BINARY_NAME "digi_guess_head_2_head")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.

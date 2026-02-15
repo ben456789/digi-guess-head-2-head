@@ -16,6 +16,7 @@ class GameProvider extends ChangeNotifier {
   int _unreadMessageCount = 0;
   bool _rematchResetting = false;
   bool _isChatOpen = false;
+  bool _startGameRequested = false;
 
   Future<void> updateEliminatedDigimonIds(List<int> eliminatedIds) async {
     if (_gameState == null || _playerId == null) return;
@@ -186,11 +187,49 @@ class GameProvider extends ChangeNotifier {
   }
 
   void _listenToGameChanges(String gameCode) {
+    debugPrint(
+      '[GameProvider] _listenToGameChanges called for gameCode=$gameCode',
+    );
     _gameSubscription?.cancel();
     bool isFirstUpdate = true;
-    _gameSubscription = GameService.listenToGame(gameCode).listen(
+    _startGameRequested = false;
+    debugPrint(
+      '[GameProvider] Creating subscription to listenToGame($gameCode)',
+    );
+    final stream = GameService.listenToGame(gameCode);
+    debugPrint('[GameProvider] Got stream: ${stream.runtimeType}');
+    _gameSubscription = stream.listen(
       (gameState) {
+        debugPrint(
+          '[GameProvider] STREAM CALLBACK INVOKED: gameState=${gameState?.hashCode}',
+        );
         if (gameState != null) {
+          debugPrint(
+            '[GameProvider] Received realtime update: '
+            'phase=${gameState.currentPhase}, '
+            'players.length=${gameState.players.length}, '
+            'allPlayersChosen=${gameState.allPlayersChosen}',
+          );
+
+          // If both players have chosen but the phase hasn't advanced yet,
+          // ensure the host triggers startGame (RLS can prevent the guest
+          // from updating current_phase).
+          if (!_startGameRequested &&
+              _playerId != null &&
+              gameState.hostId == _playerId &&
+              gameState.players.length == 2 &&
+              gameState.allPlayersChosen &&
+              gameState.currentPhase != GamePhase.inGame &&
+              gameState.currentPhase != GamePhase.gameOver) {
+            _startGameRequested = true;
+            debugPrint('[GameProvider] Host auto-triggering startGame');
+            // Don't await - let it run in background
+            GameService.startGame(gameCode, gameState.hostId).catchError((e) {
+              _startGameRequested = false;
+              debugPrint('[GameProvider] startGame failed: $e');
+            });
+          }
+
           // On first listener update, initialize unread count with opponent's messages
           if (isFirstUpdate) {
             // Initialize unread count with only opponent messages; pause if chat is open
@@ -230,17 +269,49 @@ class GameProvider extends ChangeNotifier {
               if (_isLoading) _setLoading(false);
             }
           }
-          _gameState = gameState;
-          notifyListeners();
+          // Prevent state regression: only update if new state is further in phase or has more players
+          bool shouldUpdate = true;
+          if (_gameState != null) {
+            final oldPhaseIndex = GamePhase.values.indexOf(
+              _gameState!.currentPhase,
+            );
+            final newPhaseIndex = GamePhase.values.indexOf(
+              gameState.currentPhase,
+            );
+            if (newPhaseIndex < oldPhaseIndex) {
+              shouldUpdate = false;
+            } else if (newPhaseIndex == oldPhaseIndex) {
+              // Accept if new state has more or equal players
+              if (gameState.players.length < _gameState!.players.length) {
+                shouldUpdate = false;
+              }
+            }
+          }
+          if (shouldUpdate) {
+            _gameState = gameState;
+            debugPrint(
+              'BEN [GameProvider] _gameState updated: phase=${_gameState?.currentPhase}, players.length=${_gameState?.players.length}, hashCode=${_gameState.hashCode}, playerKeys=${_gameState?.players.keys.toList()}',
+            );
+            notifyListeners();
+          } else {
+            debugPrint(
+              '[GameProvider] Skipped state update to prevent regression.',
+            );
+          }
         } else {
           _gameState = null;
           notifyListeners();
         }
       },
       onError: (error) {
+        debugPrint('[GameProvider] Stream error: $error');
         _setError('Connection error: $error');
       },
+      onDone: () {
+        debugPrint('[GameProvider] Stream closed');
+      },
     );
+    debugPrint('[GameProvider] Subscription created: $_gameSubscription');
   }
 
   void clearUnreadMessages() {
@@ -250,6 +321,14 @@ class GameProvider extends ChangeNotifier {
 
   Future<void> chooseDigimon(Digimon digimon) async {
     if (_gameState == null || _playerId == null) return;
+
+    // Optimistically apply local selection so GameScreen routing doesn't
+    // get stuck waiting for the realtime echo.
+    final me = _gameState!.players[_playerId!];
+    if (me != null) {
+      me.chosenDigimon = digimon;
+      notifyListeners();
+    }
 
     try {
       await GameService.chooseDigimon(

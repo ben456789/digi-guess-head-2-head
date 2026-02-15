@@ -293,8 +293,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final gameProvider = context.read<GameProvider>();
-    final gameState = gameProvider.gameState;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -307,6 +305,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         body: Consumer<GameProvider>(
           builder: (context, gameProvider, child) {
             final gameState = gameProvider.gameState;
+            final currentUser = gameProvider.currentUser;
+
+            // DEBUG PRINTS (kept inside Consumer so it updates with state)
+            debugPrint(
+              '[GameScreen] phase: ${gameState?.currentPhase}, '
+              'playerId: ${gameProvider.playerId}, '
+              'isHost: ${gameProvider.isHost}, '
+              'players.length: ${gameState?.players.length}, '
+              'currentUser.chosenDigimon: ${currentUser?.chosenDigimon?.id}, '
+              'allPlayersChosen: ${gameState?.allPlayersChosen}',
+            );
             // Always get eliminatedDigimonIds from backend (current player)
             List<int> eliminatedDigimonIds = [];
             if (gameState != null) {
@@ -421,17 +430,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               return const SizedBox.shrink();
             }
 
-            // If the current user has not yet chosen a Digimon, force
-            // the character selection screen.
-            // This makes the flow robust even if the backend phase or
-            // player list lags behind or is already set to inGame.
-            final currentUser = gameProvider.currentUser;
-            if (currentUser != null &&
-                currentUser.chosenDigimon == null &&
-                gameState.currentPhase != GamePhase.gameOver) {
-              return DigimonSelectionScreen(gameState: gameState);
-            }
-
             if (gameState.currentPhase == GamePhase.gameOver) {
               // Close chat modal if it's still open
               if (_chatModalOpen && mounted) {
@@ -445,14 +443,56 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               return GameOverScreen(gameState: gameState);
             }
 
-            if (gameState.currentPhase == GamePhase.digimonSelection ||
-                (gameState.currentPhase == GamePhase.waitingForPlayers &&
-                    gameState.players.length == 2)) {
+            if (gameState.currentPhase == GamePhase.roundResult) {
+              return _buildResultScreen(gameState);
+            }
+
+            // While selecting, only show the selection grid until BOTH players
+            // have chosen. After that, wait for the phase to transition.
+            final haveTwoPlayers = gameState.players.length >= 2;
+            final bothChosen = haveTwoPlayers && gameState.allPlayersChosen;
+
+            debugPrint(
+              '[GameScreen] Routing decision: phase=${gameState.currentPhase}, '
+              'haveTwoPlayers=$haveTwoPlayers, bothChosen=$bothChosen, '
+              'currentUser.chosen=${currentUser?.chosenDigimon?.id}',
+            );
+
+            if (gameState.currentPhase != GamePhase.inGame) {
+              if (bothChosen) {
+                debugPrint('[GameScreen] → Showing "Starting game..." loader');
+                return const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 12),
+                      Text('Starting game...'),
+                    ],
+                  ),
+                );
+              }
+
+              // Still waiting for opponent and/or selections
+              debugPrint(
+                '[GameScreen] → Showing DigimonSelectionScreen (waiting)',
+              );
               return DigimonSelectionScreen(gameState: gameState);
             }
 
-            if (gameState.currentPhase == GamePhase.roundResult) {
-              return _buildResultScreen(gameState);
+            // Phase is inGame - proceed to game screen even if local state is stale
+            debugPrint(
+              '[GameScreen] → Phase is inGame, proceeding to game screen',
+            );
+
+            // In-game: if the current user still hasn't chosen (edge-case),
+            // force selection - BUT check if this is just stale data
+            if (currentUser != null && currentUser.chosenDigimon == null) {
+              debugPrint(
+                '[GameScreen] WARNING: currentUser.chosenDigimon is null but phase is inGame - possible stale data',
+              );
+              // Don't force back to selection if phase is already inGame
+              // return DigimonSelectionScreen(gameState: gameState);
             }
 
             return _buildGuessingScreen(gameState, gameProvider);
@@ -504,10 +544,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     // Determine if device is a tablet
     final isTablet = MediaQuery.of(context).size.shortestSide >= 600;
     return Scaffold(
-      backgroundColor: const Color(0xFF1a8fe3),
+      backgroundColor: const Color(0xFFFF6B6B),
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)!.guessTheCharacter),
-        backgroundColor: const Color(0xFF1a8fe3),
+        backgroundColor: const Color(0xFFFF6B6B),
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -528,7 +568,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         ],
       ),
       body: Container(
-        color: const Color(0xFF1a8fe3),
+        color: const Color(0xFFFF6B6B),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -899,12 +939,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                               ...eliminated.reversed,
                             ];
                           }
-                          final poke = sortedList[index];
+                          final digi = sortedList[index];
                           final isEliminated = eliminatedDigimonIds.contains(
-                            poke.id,
+                            digi.id,
                           );
                           return _buildDigimonGridItem(
-                            poke,
+                            digi,
                             isEliminated,
                             eliminatedDigimonIds,
                           );
@@ -1034,7 +1074,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
                 child: isEliminated
                     ? const Icon(Icons.close, color: Colors.white, size: 16)
-                    : null,
+                    : const Icon(
+                        Icons.close,
+                        color: Color.fromARGB(255, 90, 90, 90),
+                        size: 16,
+                      ),
               ),
             ),
           ),
@@ -1451,21 +1495,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             ),
           ),
         ),
-        if (gameProvider.isOpponentTyping)
-          Padding(
-            padding: const EdgeInsets.only(top: 4, bottom: 4),
-            child: Row(
-              children: const [
-                SizedBox(width: 4),
-                Icon(Icons.more_horiz, color: Colors.blueAccent, size: 20),
-                SizedBox(width: 6),
-                Text(
-                  'Opponent is typing...',
-                  style: TextStyle(color: Colors.blueAccent, fontSize: 13),
-                ),
-              ],
-            ),
-          ),
         const SizedBox(height: 12),
         AnimatedBuilder(
           animation: _shakeAnimation,
@@ -1494,12 +1523,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(
-                      color: Color(0xFF1a8fe3),
+                      color: Color(0xFFC92A2A),
                       width: 2,
                     ),
                   ),
                   suffixIcon: IconButton(
-                    icon: const Icon(Icons.send, color: Color(0xFF1a8fe3)),
+                    icon: const Icon(Icons.send, color: Color(0xFFC92A2A)),
                     onPressed: _onSubmit,
                   ),
                 ),
@@ -1515,7 +1544,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               child: ElevatedButton(
                 onPressed: _onSubmit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF1a8fe3),
+                  backgroundColor: Color(0xFFC92A2A),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
@@ -1597,7 +1626,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Color(0xFF1a8fe3), Color(0xFF1976d2)],
+              colors: [Color(0xFFFF6B6B), Color(0xFFFA5252), Color(0xFFC92A2A)],
             ),
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
@@ -1634,7 +1663,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   separatorBuilder: (context, index) =>
                       const Divider(color: Colors.white12, height: 1),
                   itemBuilder: (context, index) {
-                    final poke = remainingDigimon[index];
+                    final digi = remainingDigimon[index];
                     return ListTile(
                       leading: Container(
                         width: 44,
@@ -1647,19 +1676,19 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                         child: Padding(
                           padding: const EdgeInsets.all(4.0),
                           child: CachedNetworkImage(
-                            imageUrl: poke.imageUrl,
+                            imageUrl: digi.imageUrl,
                             fit: BoxFit.contain,
                           ),
                         ),
                       ),
                       title: Text(
-                        _getLocalizedDigimonName(poke, rootContext),
+                        _getLocalizedDigimonName(digi, rootContext),
                         style: const TextStyle(color: Colors.white),
                       ),
                       onTap: () async {
                         if (!mounted) return;
                         final localizedName = _getLocalizedDigimonName(
-                          poke,
+                          digi,
                           rootContext,
                         );
                         final confirm = await showDialog<bool>(
@@ -1690,7 +1719,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                         Navigator.pop(sheetContext);
                         try {
                           final localizedName = _getLocalizedDigimonName(
-                            poke,
+                            digi,
                             rootContext,
                           );
                           final localizedQuestion = AppLocalizations.of(
@@ -1701,7 +1730,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                           )!.no;
 
                           final isCorrect = await gameProvider.submitGuess(
-                            poke,
+                            digi,
                             localizedQuestion,
                             localizedNo,
                           );
@@ -1717,7 +1746,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                               ScaffoldMessenger.of(rootContext).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    'Guessing ${poke.capitalizedName}...',
+                                    'Guessing ${digi.capitalizedName}...',
                                   ),
                                   duration: const Duration(seconds: 1),
                                   backgroundColor: Colors.blue,
@@ -2105,28 +2134,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                         ),
                         const SizedBox(height: 20),
 
-                        // Description
-                        if (digimon.description != null &&
-                            digimon.description!.isNotEmpty) ...[
-                          const Text(
-                            'Description',
-                            style: TextStyle(
-                              color: Colors.black54,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            digimon.description!,
-                            style: const TextStyle(
-                              color: Colors.black87,
-                              fontSize: 12,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                        ],
-
                         // Prior Evolutions
                         if (digimon.priorEvolutions != null &&
                             digimon.priorEvolutions!.isNotEmpty) ...[
@@ -2253,21 +2260,24 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                           Wrap(
                             spacing: 8,
                             children: digimon.types.map((type) {
-                              return Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.blueGrey,
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Text(
-                                  type,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 8.0),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blueGrey,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Text(
+                                    type,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                               );

@@ -38,7 +38,7 @@ AppLocalizations.of(context)!.settings
 To add a language selector to your settings or anywhere in the app:
 
 ```dart
-import 'package:poke_guess_head_2_head/widgets/language_selector.dart';
+import 'package:digi_guess_head_2_head/widgets/language_selector.dart';
 
 // In your widget:
 LanguageSelector()
@@ -48,7 +48,7 @@ LanguageSelector()
 
 ```dart
 import 'package:provider/provider.dart';
-import 'package:poke_guess_head_2_head/providers/locale_provider.dart';
+import 'package:digi_guess_head_2_head/providers/locale_provider.dart';
 
 // Change language:
 Provider.of<LocaleProvider>(context, listen: false).setLocale(Locale('es'));

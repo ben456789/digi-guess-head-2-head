@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -10,6 +11,9 @@ class GameService {
   static SupabaseClient get _db => Supabase.instance.client;
   static const String _table = 'games';
   static final Uuid _uuid = Uuid();
+
+  // Cache streams per game code to ensure all subscribers receive updates
+  static final Map<String, Stream<GameState?>> _gameStreams = {};
 
   // ─── helpers ──────────────────────────────────────────────────────────────
 
@@ -238,48 +242,123 @@ class GameService {
 
   /// Listen to game changes via Supabase Realtime.
   static Stream<GameState?> listenToGame(String gameCode) {
-    final controller = StreamController<GameState?>.broadcast();
+    // Return cached stream if it exists
+    if (_gameStreams.containsKey(gameCode)) {
+      debugPrint('[GameService] Returning cached stream for $gameCode');
+      return _gameStreams[gameCode]!;
+    }
 
-    // Fetch initial state
+    debugPrint('[GameService] Creating new stream for $gameCode');
+    GameState? latestState;
+    late final StreamController<GameState?> controller;
+    int fetchSequence = 0;
+    late final RealtimeChannel channel;
+
+    controller = StreamController<GameState?>.broadcast(
+      onListen: () {
+        // Emit cached state to new subscribers immediately
+        if (latestState != null) {
+          debugPrint(
+            '[GameService] Emitting cached state to new subscriber: phase=${latestState!.currentPhase}, players.length=${latestState!.players.length}',
+          );
+          controller.add(latestState);
+        }
+      },
+    );
+
+    // Fetch initial state and set up channel immediately
     _db.from(_table).select().eq('game_code', gameCode).limit(1).then((rows) {
       if (rows.isEmpty) {
+        debugPrint('[GameService] EMIT: null (initial fetch)');
+        latestState = null;
         controller.add(null);
       } else {
-        controller.add(GameState.fromJson(_rowToJson(rows.first)));
+        final gs = GameState.fromJson(_rowToJson(rows.first));
+        debugPrint(
+          '[GameService] EMIT: phase=${gs.currentPhase}, players.length=${gs.players.length}, hashCode=${gs.hashCode} (initial fetch)',
+        );
+        latestState = gs;
+        controller.add(gs);
       }
+
+      // Subscribe to realtime changes AFTER initial fetch
+      channel = _db.channel('game-$gameCode');
+      channel
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: _table,
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'game_code',
+              value: gameCode,
+            ),
+            callback: (payload) async {
+              if (payload.eventType == PostgresChangeEvent.delete) {
+                controller.add(null);
+                return;
+              }
+              final seq = ++fetchSequence;
+              debugPrint(
+                '[GameService] Realtime event (seq=$seq): ${payload.eventType}',
+              );
+              // Always re-fetch after realtime event
+              try {
+                final rows = await _db
+                    .from(_table)
+                    .select()
+                    .eq('game_code', gameCode)
+                    .limit(1);
+                if (seq != fetchSequence) {
+                  debugPrint(
+                    '[GameService] Discarding stale fetch (seq=$seq, current=$fetchSequence)',
+                  );
+                  return; // Stale – discard
+                }
+                if (rows.isEmpty) {
+                  debugPrint('[GameService] Re-fetch returned no rows');
+                  debugPrint('[GameService] EMIT: null (realtime fetch)');
+                  latestState = null;
+                  controller.add(null);
+                } else {
+                  final row = rows.first;
+                  debugPrint(
+                    '[GameService] RAW PLAYERS FIELD: ' +
+                        (row['players']?.toString() ?? 'null'),
+                  );
+                  final gameState = GameState.fromJson(_rowToJson(row));
+                  debugPrint(
+                    '[GameService] Re-fetched: phase=${gameState.currentPhase}, players.length=${gameState.players.length}',
+                  );
+                  debugPrint(
+                    '[GameService] EMIT: phase=${gameState.currentPhase}, players.length=${gameState.players.length}, hashCode=${gameState.hashCode} (realtime fetch)',
+                  );
+                  latestState = gameState;
+                  controller.add(gameState);
+                }
+              } catch (e) {
+                debugPrint('[GameService] Re-fetch failed: $e');
+                if (seq != fetchSequence) return; // Stale – discard
+                // Fallback: use the partial payload if the fetch fails
+                final row = payload.newRecord;
+                if (row.isEmpty) {
+                  latestState = null;
+                  controller.add(null);
+                } else {
+                  final gs = GameState.fromJson(_rowToJson(row));
+                  debugPrint(
+                    '[GameService] EMIT: phase=${gs.currentPhase}, players.length=${gs.players.length}, hashCode=${gs.hashCode} (realtime fallback)',
+                  );
+                  latestState = gs;
+                  controller.add(gs);
+                }
+              }
+            },
+          )
+          .subscribe();
     });
 
-    // Subscribe to realtime changes
-    final channel = _db.channel('game-$gameCode');
-    channel
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: _table,
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'game_code',
-            value: gameCode,
-          ),
-          callback: (payload) {
-            if (payload.eventType == PostgresChangeEvent.delete) {
-              controller.add(null);
-              return;
-            }
-            final row = payload.newRecord;
-            if (row.isEmpty) {
-              controller.add(null);
-            } else {
-              controller.add(GameState.fromJson(_rowToJson(row)));
-            }
-          },
-        )
-        .subscribe();
-
-    controller.onCancel = () {
-      _db.removeChannel(channel);
-    };
-
+    _gameStreams[gameCode] = controller.stream;
     return controller.stream;
   }
 
@@ -400,7 +479,7 @@ class GameService {
   ) async {
     final row = await _db
         .from(_table)
-        .select('players')
+        .select('players, host_id')
         .eq('game_code', gameCode)
         .single();
     final players = Map<String, dynamic>.from(
@@ -418,14 +497,19 @@ class GameService {
         .eq('game_code', gameCode);
 
     // After updating, check if all players have chosen a Digimon.
-    final allChosen = players.values.every((p) {
-      final player = Map<String, dynamic>.from(p as Map);
-      return player['chosenDigimon'] != null;
-    });
+    // Guard against the "vacuous truth" case where there's only 1 player.
+    final allChosen =
+        players.length >= 2 &&
+        players.values.every((p) {
+          final player = Map<String, dynamic>.from(p as Map);
+          return player['chosenDigimon'] != null;
+        });
 
     if (allChosen) {
-      // Use the first player's ID as the starting player
-      final firstPlayerId = players.keys.first;
+      // Coin flip: randomly pick which player goes first.
+      final playerIds = players.keys.toList();
+      final random = Random();
+      final firstPlayerId = playerIds[random.nextInt(playerIds.length)];
       await startGame(gameCode, firstPlayerId);
     }
   }
@@ -496,15 +580,20 @@ class GameService {
       _decodeJsonField(row['players'], {}),
     );
 
-    final allChosen = players.values.every((p) {
-      final player = Map<String, dynamic>.from(p as Map);
-      return player['chosenDigimon'] != null;
-    });
+    final allChosen =
+        players.length >= 2 &&
+        players.values.every((p) {
+          final player = Map<String, dynamic>.from(p as Map);
+          return player['chosenDigimon'] != null;
+        });
 
     if (!allChosen) {
       return;
     }
-
+    print(
+      '[GameService] startGame: setting phase to inGame for gameCode: ' +
+          gameCode,
+    );
     await _db
         .from(_table)
         .update({

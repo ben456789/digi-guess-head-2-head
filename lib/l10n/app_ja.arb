@@ -120,11 +120,11 @@
   },
   "noAvailableCharacter": "推測できるキャラクターがありません",
   "makeAGuess": "推測してください！",
-  "confirmGuess": "{pokemonName}を推測しますか？",
+  "confirmGuess": "{digimonName}を推測しますか？",
   "@confirmGuess": {
     "description": "推測確認メッセージ",
     "placeholders": {
-      "pokemonName": {
+      "digimonName": {
         "type": "String"
       }
     }
@@ -163,11 +163,11 @@
   "playAgain": "もう一度プレイ",
   "evolutionChain": "進化",
   "type": "タイプ",
-  "guessQuestion": "それは{pokemonName}ですか？",
+  "guessQuestion": "それは{digimonName}ですか？",
   "@guessQuestion": {
     "description": "Question format when making a guess",
     "placeholders": {
-      "pokemonName": {
+      "digimonName": {
         "type": "String"
       }
     }

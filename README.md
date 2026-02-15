@@ -31,7 +31,7 @@ A multiplayer "Guess Who" style game with character! Players take turns asking y
 
 - Built with Flutter for cross-platform compatibility
 - Uses Provider for state management
-- Integrates with PokeAPI (https://pokeapi.co/) for character data
+- Integrates with digiAPI (https://digiapi.co/) for character data
 - Cached network images for better performance
 - Smooth animations and transitions
 - Responsive design for different screen sizes
@@ -50,7 +50,7 @@ A multiplayer "Guess Who" style game with character! Players take turns asking y
 
 ```bash
 git clone <repository-url>
-cd poke_guess_head_2_head
+cd digi_guess_head_2_head
 ```
 
 2. Install dependencies:
@@ -79,7 +79,7 @@ flutter run
 ## Dependencies
 
 - **flutter**: The core Flutter framework
-- **http**: For making API requests to PokeAPI
+- **http**: For making API requests to digiAPI
 - **provider**: State management solution
 - **cached_network_image**: Efficient image loading and caching
 - **flutter_animate**: Smooth animations and transitions
@@ -87,7 +87,7 @@ flutter run
 
 ## API Used
 
-This game uses the [PokeAPI](https://pokeapi.co/) - a free RESTful API providing comprehensive character data including:
+This game uses the [digiAPI](https://digiapi.co/) - a free RESTful API providing comprehensive character data including:
 
 - character names and IDs
 - High-quality official artwork

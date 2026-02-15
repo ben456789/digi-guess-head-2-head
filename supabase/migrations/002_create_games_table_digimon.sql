@@ -5,7 +5,7 @@
 -- This will DROP and RECREATE the `games` table.
 -- =============================================================================
 
--- 1) Drop old games table (Pokemon schema)
+-- 1) Drop old games table (digimon schema)
 DROP TABLE IF EXISTS games CASCADE;
 
 -- 2) Create new games table (Digimon schema)

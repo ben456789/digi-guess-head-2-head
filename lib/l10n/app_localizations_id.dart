@@ -341,8 +341,8 @@ class AppLocalizationsId extends AppLocalizations {
   String get makeAGuess => 'Buat Tebakan!';
 
   @override
-  String confirmGuess(String pokemonName) {
-    return 'Apakah Anda yakin ingin menebak $pokemonName?';
+  String confirmGuess(String digimonName) {
+    return 'Apakah Anda yakin ingin menebak $digimonName?';
   }
 
   @override
@@ -434,7 +434,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get type => 'Tipe';
 
   @override
-  String guessQuestion(String pokemonName) {
-    return 'Apakah itu $pokemonName?';
+  String guessQuestion(String digimonName) {
+    return 'Apakah itu $digimonName?';
   }
 }

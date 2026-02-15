@@ -20,6 +20,66 @@ class DigimonSelectionScreen extends StatefulWidget {
 
 class _DigimonSelectionScreenState extends State<DigimonSelectionScreen> {
   int? _locallySelectedDigimonId;
+  bool _snackbarCallbackPending = false;
+  bool _isSnackbarShowing = false;
+
+  void _updateOpponentReadySnackbar(
+    BuildContext context,
+    bool hasOpponentChosen,
+    bool hasCurrentChosen,
+  ) {
+    // Prevent stacking multiple post-frame callbacks on rapid rebuilds
+    if (_snackbarCallbackPending) return;
+    _snackbarCallbackPending = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _snackbarCallbackPending = false;
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      if (hasOpponentChosen && !hasCurrentChosen) {
+        // Only show if not already showing – avoids clear+show cascade
+        if (!_isSnackbarShowing) {
+          if (ModalRoute.of(context)?.isCurrent ?? true) {
+            _isSnackbarShowing = true;
+            messenger.clearSnackBars();
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(AppLocalizations.of(context)!.opponentReady),
+                duration: const Duration(days: 365),
+                behavior: SnackBarBehavior.floating,
+                backgroundColor: Colors.green[700],
+                action: SnackBarAction(
+                  label: AppLocalizations.of(context)!.dismiss,
+                  textColor: Colors.white,
+                  onPressed: () {
+                    _isSnackbarShowing = false;
+                    messenger.clearSnackBars();
+                  },
+                ),
+              ),
+            );
+          }
+        }
+      } else {
+        if (_isSnackbarShowing) {
+          _isSnackbarShowing = false;
+          messenger.clearSnackBars();
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    // Clear any lingering snackbar when leaving the screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_isSnackbarShowing) {
+        try {
+          ScaffoldMessenger.of(context).clearSnackBars();
+        } catch (_) {}
+      }
+    });
+    super.dispose();
+  }
 
   void _showLeaveConfirmation(BuildContext context, GameProvider gameProvider) {
     showDialog(
@@ -110,7 +170,7 @@ class _DigimonSelectionScreenState extends State<DigimonSelectionScreen> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF1E90FF), Color(0xFF1C7ED6), Color(0xFF1864AB)],
+          colors: [Color(0xFFFF6B6B), Color(0xFFFA5252), Color(0xFFC92A2A)],
         ),
       ),
       child: Scaffold(
@@ -150,6 +210,10 @@ class _DigimonSelectionScreenState extends State<DigimonSelectionScreen> {
                 // phase updates are reflected.
                 final liveState = gameProvider.gameState ?? widget.gameState;
 
+                debugPrint(
+                  '[DigimonSelectionScreen] phase: \\${liveState.currentPhase}, playerOne.chosen: \\${liveState.playerOne.chosenDigimon?.id}, playerTwo.chosen: \\${liveState.playerTwo?.chosenDigimon?.id}',
+                );
+
                 final isPlayerOne =
                     gameProvider.playerId == liveState.playerOne.id;
                 final currentPlayer = isPlayerOne
@@ -160,44 +224,18 @@ class _DigimonSelectionScreenState extends State<DigimonSelectionScreen> {
                     : liveState.playerOne;
 
                 // --- Persistent Snackbar Logic ---
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  final hasOpponentChosen =
-                      opponentPlayer?.chosenDigimon != null;
-                  final hasCurrentChosen = currentPlayer?.chosenDigimon != null;
-                  final messenger = ScaffoldMessenger.of(context);
-                  final snackBarKey = ValueKey('opponent_ready_snackbar');
-                  if (hasOpponentChosen && !hasCurrentChosen) {
-                    if (ModalRoute.of(context)?.isCurrent ?? true) {
-                      messenger.clearSnackBars();
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            AppLocalizations.of(context)!.opponentReady,
-                          ),
-                          duration: const Duration(days: 365),
-                          behavior: SnackBarBehavior.floating,
-                          backgroundColor: Colors.green[700],
-                          key: snackBarKey,
-                          action: SnackBarAction(
-                            label: AppLocalizations.of(context)!.dismiss,
-                            textColor: Colors.white,
-                            onPressed: () {
-                              messenger.clearSnackBars();
-                            },
-                          ),
-                        ),
-                      );
-                    }
-                  } else {
-                    messenger.clearSnackBars();
-                  }
-                });
+                final hasOpponentChosen = opponentPlayer?.chosenDigimon != null;
+                final hasCurrentChosen = currentPlayer?.chosenDigimon != null;
+                _updateOpponentReadySnackbar(
+                  context,
+                  hasOpponentChosen,
+                  hasCurrentChosen,
+                );
                 // --- End Persistent Snackbar Logic ---
 
                 // Compose levels text
                 final selectedLevels = liveState.selectedLevels;
                 final sortedLevels = (selectedLevels.toList()..sort());
-
                 return Column(
                   children: [
                     const SizedBox(height: 8),
@@ -313,6 +351,7 @@ class _DigimonSelectionScreenState extends State<DigimonSelectionScreen> {
         }
       },
       child: Card(
+        color: Colors.white,
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Padding(

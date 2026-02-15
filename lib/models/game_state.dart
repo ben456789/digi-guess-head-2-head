@@ -178,6 +178,7 @@ class GameState {
   bool get isGameReady => players.length == 2;
 
   bool get allPlayersChosen =>
+      players.length >= 2 &&
       players.values.every((p) => p.chosenDigimon != null);
 
   Player? get currentPlayer =>
@@ -254,6 +255,9 @@ class GameState {
           return MapEntry(key.toString(), Player.fromJson(playerData));
         }) ??
         <String, Player>{};
+    print(
+      'DEBUG GameState.fromJson: parsed players.length = \\${players.length}, keys = \\${players.keys.toList()}',
+    );
 
     final messagesRaw = json['messages'];
     final messages = <GameMessage>[];

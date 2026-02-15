@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:poke_guess_head_2_head/screens/privacy_policy_screen.dart';
+import 'package:digi_guess_head_2_head/screens/privacy_policy_screen.dart';
 import '../l10n/app_localizations.dart';
 
 class LegalScreen extends StatelessWidget {
