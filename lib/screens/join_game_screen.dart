@@ -177,7 +177,7 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFFFF6B6B), Color(0xFFFA5252), Color(0xFFC92A2A)],
+          colors: [Color(0xFFE03131), Color(0xFFC92A2A), Color(0xFF7F1D1D)],
         ),
       ),
       child: Scaffold(
@@ -321,7 +321,7 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
                           : const Icon(Icons.login),
                       label: Text(
                         _joining
-                            ? AppLocalizations.of(context)!.generating
+                            ? AppLocalizations.of(context)!.joinGame
                             : AppLocalizations.of(context)!.joinGame,
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(

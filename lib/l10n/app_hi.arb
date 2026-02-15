@@ -11,6 +11,7 @@
   "selectGenerations": "खेल के लिए स्तरों का चयन करें",
   "numberOfCharacters": "पात्रों की संख्या",
   "generating": "बना रहे हैं...",
+  "startingGame": "गेम शुरू हो रहा है...",
   "generateCodeQR": "कोड और QR बनाएं",
   "waitingForPlayer": "किसी अन्य खिलाड़ी के QR कोड स्कैन करने या कोड दर्ज करने की प्रतीक्षा में...",
   "gameCodeLabel": "खेल कोड",

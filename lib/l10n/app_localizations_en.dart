@@ -46,6 +46,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get generating => 'Creating...';
 
   @override
+  String get startingGame => 'Starting game...';
+
+  @override
   String get generateCodeQR => 'Generate Code & QR';
 
   @override

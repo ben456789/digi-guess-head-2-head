@@ -24,6 +24,8 @@
   "@numberOfCharacters": {"description": "Label for character count selection"},
   "generating": "Creating...",
   "@generating": {"description": "Creating game progress text"},
+  "startingGame": "Starting game...",
+  "@startingGame": {"description": "Starting game progress text"},
   "generateCodeQR": "Generate Code & QR",
   "@generateCodeQR": {"description": "Button to generate game code"},
   "waitingForPlayer": "Waiting for another player to scan QR or enter code...",

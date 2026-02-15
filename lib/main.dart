@@ -96,7 +96,7 @@ class WelcomeScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFFF6B6B), Color(0xFFFA5252), Color(0xFFC92A2A)],
+            colors: [Color(0xFFE03131), Color(0xFFC92A2A), Color(0xFF7F1D1D)],
           ),
         ),
         height: MediaQuery.of(context).size.height,

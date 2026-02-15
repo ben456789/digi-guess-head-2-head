@@ -301,7 +301,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFF1a8fe3),
+        backgroundColor: const Color(0xFFFA5252),
         body: Consumer<GameProvider>(
           builder: (context, gameProvider, child) {
             final gameState = gameProvider.gameState;
@@ -461,13 +461,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             if (gameState.currentPhase != GamePhase.inGame) {
               if (bothChosen) {
                 debugPrint('[GameScreen] → Showing "Starting game..." loader');
-                return const Center(
+                return Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 12),
-                      Text('Starting game...'),
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 12),
+                      Text(
+                        AppLocalizations.of(context)!.startingGame,
+                        style: const TextStyle(color: Colors.white),
+                      ),
                     ],
                   ),
                 );
@@ -1626,7 +1629,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Color(0xFFFF6B6B), Color(0xFFFA5252), Color(0xFFC92A2A)],
+              colors: [Color(0xFFE03131), Color(0xFFC92A2A), Color(0xFF7F1D1D)],
             ),
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),

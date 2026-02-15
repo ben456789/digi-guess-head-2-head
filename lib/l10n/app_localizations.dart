@@ -182,6 +182,12 @@ abstract class AppLocalizations {
   /// **'Creating...'**
   String get generating;
 
+  /// Starting game progress text
+  ///
+  /// In en, this message translates to:
+  /// **'Starting game...'**
+  String get startingGame;
+
   /// Button to generate game code
   ///
   /// In en, this message translates to:

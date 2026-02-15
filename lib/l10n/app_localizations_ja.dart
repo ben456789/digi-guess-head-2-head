@@ -45,6 +45,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get generating => '作成中...';
 
   @override
+  String get startingGame => 'ゲームを開始しています...';
+
+  @override
   String get generateCodeQR => 'コードとQRを生成';
 
   @override

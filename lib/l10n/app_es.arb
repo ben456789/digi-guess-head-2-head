@@ -12,6 +12,7 @@
   "selectGenerations": "Selecciona Niveles para el juego",
   "numberOfCharacters": "Número de Personajes",
   "generating": "Creando...",
+  "startingGame": "Iniciando juego...",
   "generateCodeQR": "Generar Código y QR",
   "waitingForPlayer": "Esperando a que otro jugador escanee el QR o ingrese el código...",
   "gameCodeLabel": "Código del Juego",

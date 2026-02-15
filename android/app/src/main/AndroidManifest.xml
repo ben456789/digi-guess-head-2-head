@@ -3,7 +3,7 @@
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="merge"/>
     <uses-permission android:name="android.permission.VIBRATE" />
     <application
-        android:label="digi_guess_head_2_head"
+        android:label="Digi Guess Head 2 Head"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <meta-data

@@ -46,6 +46,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get generating => 'Gerando...';
 
   @override
+  String get startingGame => 'Iniciando jogo...';
+
+  @override
   String get generateCodeQR => 'Gerar Código e QR';
 
   @override

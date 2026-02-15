@@ -11,10 +11,23 @@ import '../widgets/settings_modal.dart';
 import '../services/settings_service.dart';
 import '../l10n/app_localizations.dart';
 
-class GameOverScreen extends StatelessWidget {
+class GameOverScreen extends StatefulWidget {
   final GameState gameState;
 
   const GameOverScreen({super.key, required this.gameState});
+
+  @override
+  State<GameOverScreen> createState() => _GameOverScreenState();
+}
+
+class _GameOverScreenState extends State<GameOverScreen> {
+  bool _resetInitiated = false;
+
+  @override
+  void dispose() {
+    _resetInitiated = false;
+    super.dispose();
+  }
 
   // Helper to get Digimon name in current locale
   String _getLocalizedDigimonName(Digimon digimon, BuildContext context) {
@@ -26,6 +39,7 @@ class GameOverScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final gameProvider = context.watch<GameProvider>();
     final currentPlayerId = gameProvider.playerId;
+    final gameState = widget.gameState;
 
     // Vibrate to signal game over (only once)
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -46,7 +60,7 @@ class GameOverScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFFF6B6B), Color(0xFFFA5252), Color(0xFFC92A2A)],
+            colors: [Color(0xFFE03131), Color(0xFFC92A2A), Color(0xFF7F1D1D)],
           ),
         ),
         child: Scaffold(
@@ -139,10 +153,19 @@ class GameOverScreen extends StatelessWidget {
         : false;
     final bothReady = currentPlayerReady && otherPlayerReady;
 
+    debugPrint(
+      '[GameOverScreen] currentPlayerReady: $currentPlayerReady, otherPlayerReady: $otherPlayerReady, bothReady: $bothReady, _resetInitiated: $_resetInitiated',
+    );
+
     // If both players are ready, navigate back to character selection
-    if (bothReady) {
+    if (bothReady && !_resetInitiated) {
+      debugPrint('[GameOverScreen] Both players ready! Initiating reset...');
+      _resetInitiated = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        gameProvider.resetGameForBothPlayers();
+        if (mounted) {
+          debugPrint('[GameOverScreen] Calling resetGameForBothPlayers()');
+          gameProvider.resetGameForBothPlayers();
+        }
       });
     }
 
@@ -151,7 +174,7 @@ class GameOverScreen extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF1E90FF), Color(0xFF1C7ED6), Color(0xFF1864AB)],
+          colors: [Color(0xFFE03131), Color(0xFFC92A2A), Color(0xFF7F1D1D)],
         ),
       ),
       child: Scaffold(
@@ -209,7 +232,7 @@ class GameOverScreen extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 28,
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFF53E848),
+                                    color: Color.fromARGB(255, 255, 255, 255),
                                   ),
                                   textAlign: TextAlign.center,
                                 ),

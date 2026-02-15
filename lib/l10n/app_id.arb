@@ -11,6 +11,7 @@
   "selectGenerations": "Pilih level untuk permainan",
   "numberOfCharacters": "Jumlah Karakter",
   "generating": "Membuat...",
+  "startingGame": "Memulai permainan...",
   "generateCodeQR": "Buat Kode & QR",
   "waitingForPlayer": "Menunggu pemain lain memindai kode QR atau memasukkan kode...",
   "gameCodeLabel": "Kode Permainan",

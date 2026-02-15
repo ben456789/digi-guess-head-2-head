@@ -59,6 +59,12 @@ class _DigimonSelectionScreenState extends State<DigimonSelectionScreen> {
             );
           }
         }
+      } else if (hasOpponentChosen && hasCurrentChosen) {
+        // Both players have chosen, about to transition: clear snackbar
+        if (_isSnackbarShowing) {
+          _isSnackbarShowing = false;
+          messenger.clearSnackBars();
+        }
       } else {
         if (_isSnackbarShowing) {
           _isSnackbarShowing = false;
@@ -170,7 +176,7 @@ class _DigimonSelectionScreenState extends State<DigimonSelectionScreen> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFFFF6B6B), Color(0xFFFA5252), Color(0xFFC92A2A)],
+          colors: [Color(0xFFE03131), Color(0xFFC92A2A), Color(0xFF7F1D1D)],
         ),
       ),
       child: Scaffold(

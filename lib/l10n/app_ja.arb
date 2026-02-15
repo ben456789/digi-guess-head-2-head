@@ -12,6 +12,7 @@
   "selectGenerations": "ゲーム用のレベルを選択",
   "numberOfCharacters": "キャラクター数",
   "generating": "作成中...",
+  "startingGame": "ゲームを開始しています...",
   "generateCodeQR": "コードとQRを生成",
   "waitingForPlayer": "他のプレイヤーがQRをスキャンまたはコードを入力するのを待っています...",
   "gameCodeLabel": "ゲームコード",

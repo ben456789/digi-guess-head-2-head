@@ -262,14 +262,24 @@ class GameProvider extends ChangeNotifier {
             // Clear loading based on phase transitions
             if (_gameState!.currentPhase == GamePhase.gameOver &&
                 gameState.currentPhase == GamePhase.digimonSelection) {
+              debugPrint(
+                '[GameProvider] Detected rematch: clearing loading state',
+              );
               _setLoading(false);
             }
             if (gameState.currentPhase == GamePhase.inGame ||
-                gameState.currentPhase == GamePhase.gameOver) {
-              if (_isLoading) _setLoading(false);
+                gameState.currentPhase == GamePhase.gameOver ||
+                gameState.currentPhase == GamePhase.digimonSelection) {
+              if (_isLoading) {
+                debugPrint(
+                  '[GameProvider] Clearing loading state for phase: ${gameState.currentPhase}',
+                );
+                _setLoading(false);
+              }
             }
           }
           // Prevent state regression: only update if new state is further in phase or has more players
+          // EXCEPT: Allow gameOver -> digimonSelection for rematches
           bool shouldUpdate = true;
           if (_gameState != null) {
             final oldPhaseIndex = GamePhase.values.indexOf(
@@ -278,7 +288,15 @@ class GameProvider extends ChangeNotifier {
             final newPhaseIndex = GamePhase.values.indexOf(
               gameState.currentPhase,
             );
-            if (newPhaseIndex < oldPhaseIndex) {
+
+            // Special case: Allow rematch (gameOver -> digimonSelection)
+            if (_gameState!.currentPhase == GamePhase.gameOver &&
+                gameState.currentPhase == GamePhase.digimonSelection) {
+              debugPrint(
+                '[GameProvider] Allowing rematch transition: gameOver -> digimonSelection',
+              );
+              shouldUpdate = true;
+            } else if (newPhaseIndex < oldPhaseIndex) {
               shouldUpdate = false;
             } else if (newPhaseIndex == oldPhaseIndex) {
               // Accept if new state has more or equal players
@@ -512,8 +530,16 @@ class GameProvider extends ChangeNotifier {
 
   Future<void> resetGameForBothPlayers() async {
     if (_gameState == null) return;
-    if (_rematchResetting) return;
+    if (_rematchResetting) {
+      debugPrint(
+        '[GameProvider] resetGameForBothPlayers called but already resetting',
+      );
+      return;
+    }
 
+    debugPrint(
+      '[GameProvider] resetGameForBothPlayers started (isHost: $isHost)',
+    );
     _rematchResetting = true;
     _setLoading(true);
     try {
@@ -522,25 +548,33 @@ class GameProvider extends ChangeNotifier {
 
       // Only the host generates new Digimon to avoid duplicates
       if (isHost) {
+        debugPrint('[GameProvider] Host generating new game state...');
         // Use the same character count as the current game
         final characterCount = _gameState!.availableDigimon.length;
         final digimon = await DigimonService.getDigimonByLevels(
           _gameState!.selectedLevels,
           characterCount,
         );
+        debugPrint('[GameProvider] Generated ${digimon.length} new digimon');
 
         // Randomly select first player for the new round
         final playerIds = _gameState!.players.keys.toList();
         playerIds.shuffle();
         final newFirstPlayerId = playerIds.first;
+        debugPrint('[GameProvider] New first player: $newFirstPlayerId');
 
         // Build updates map with basic game state reset
         final Map<String, dynamic> updates = {
           'currentPhase': GamePhase.digimonSelection.name,
           'playersReadyToPlayAgain': {},
+          'playersTyping': {},
           'winner': null,
           'currentRound': 1,
+          'maxRounds': _gameState!.maxRounds,
           'messages': [],
+          'lastGuessResult': null,
+          'currentGuess': null,
+          'timeLeft': 30,
           'createdAt': DateTime.now()
               .millisecondsSinceEpoch, // Refresh timestamp to prevent cleanup
           'availableDigimon': digimon.map((p) => p.toJson()).toList(),
@@ -548,23 +582,34 @@ class GameProvider extends ChangeNotifier {
         };
 
         // Reset eliminated character and chosen character for all players
+        // Note: Scores are preserved across rematches
         for (final playerId in _gameState!.players.keys) {
           updates['players/$playerId/eliminatedDigimonIds'] = [];
           updates['players/$playerId/chosenDigimon'] = null;
+          updates['players/$playerId/isCurrentTurn'] =
+              playerId == newFirstPlayerId;
         }
 
+        debugPrint('[GameProvider] Updating game state in database...');
         // Reset the game state to Digimon selection phase
         await GameService.updateGameState(_gameState!.gameCode, updates);
+        debugPrint('[GameProvider] Game state updated successfully');
         // UI should show the "first player" modal for 3 seconds after rematch
         // (handled in GameScreen UI logic)
         _setLoading(false);
+      } else {
+        debugPrint(
+          '[GameProvider] Guest waiting for host to update game state...',
+        );
       }
       // Guest stays in loading state until listener receives phase change
     } catch (e) {
+      debugPrint('[GameProvider] Error resetting game: $e');
       _setError('Error resetting game: $e');
       _setLoading(false);
     } finally {
       _rematchResetting = false;
+      debugPrint('[GameProvider] resetGameForBothPlayers completed');
     }
   }
 
