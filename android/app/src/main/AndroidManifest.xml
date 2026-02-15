@@ -8,7 +8,7 @@
         android:icon="@mipmap/ic_launcher">
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-8540464399341739~4483791321" />
+            android:value="ca-app-pub-8540464399341739~4726414030" />
         <activity
             android:name="com.frontendben.digi_guess_head_2_head.MainActivity"
             android:exported="true"

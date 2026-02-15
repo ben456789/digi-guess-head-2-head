@@ -43,7 +43,7 @@ class _InterstitialAdWidgetState extends State<InterstitialAdWidget> {
     if (kIsWeb) return;
 
     // Determine ad unit ID based on platform
-    String adUnitId = 'ca-app-pub-8540464399341739/7883545519';
+    String adUnitId = 'ca-app-pub-8540464399341739/3309390584';
     if (Platform.isIOS) {
       adUnitId = _iosTestAdUnitId;
     }

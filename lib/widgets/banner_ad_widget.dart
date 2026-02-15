@@ -39,7 +39,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     // Only load ads if not on web
     if (kIsWeb) return;
     // Determine ad unit ID based on platform
-    String adUnitId = 'ca-app-pub-8540464399341739/2595994582';
+    String adUnitId = 'ca-app-pub-8540464399341739/2317976183';
     if (Platform.isIOS) {
       adUnitId = _iosTestAdUnitId;
     }
