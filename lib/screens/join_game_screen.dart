@@ -267,7 +267,7 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
                         hintStyle: const TextStyle(color: Colors.white70),
                         errorText: _codeErrorText,
                         errorStyle: const TextStyle(
-                          color: Colors.red,
+                          color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
                         prefixIcon: const Icon(
